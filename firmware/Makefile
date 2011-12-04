@@ -30,17 +30,17 @@ AVRDUDE = avrdude -p m328p -c avrisp2 -P /dev/cu.usbmodem00028191
 all:	main.hex
 
 .c.o:
-	$(COMPILE) -c $< -o $@
+	$(COMPILE) -c $< -o $@ 
 
 .S.o:
-	$(COMPILE) -x assembler-with-cpp -c $< -o $@
+	$(COMPILE) -x assembler-with-cpp -c $< -o $@ 
 # "-x assembler-with-cpp" should not be necessary since this is the default
 # file type for the .S (with capital S) extension. However, upper case
 # characters are not always preserved on Windows. To ensure WinAVR
 # compatibility define the file type manually.
 
 .c.s:
-	$(COMPILE) -S $< -o $@
+	$(COMPILE) -S $< -o $@ 
 
 flash:	all
 	$(AVRDUDE) -U flash:w:main.hex:i
@@ -60,7 +60,7 @@ clean:
 
 # file targets:
 main.elf: $(OBJECTS)
-	$(COMPILE) -o main.elf $(OBJECTS)
+	$(COMPILE) -o main.elf $(OBJECTS) -lm
 
 main.hex: main.elf
 	rm -f main.hex

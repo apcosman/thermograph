@@ -5,6 +5,7 @@
 #define MYUBRR F_CPU/16/BAUD-1
 
 #include <avr/io.h>
+#include <math.h>
 #include <util/delay.h>
 
 void delayms( uint16_t millis ) {
@@ -14,10 +15,16 @@ void delayms( uint16_t millis ) {
 	}
 }
 
-char nthdigit(uint16_t x, unsigned int n)
+char nthdigit(uint32_t x, unsigned int n)
 {
-    static uint16_t powersof10[] = {1, 10, 100, 1000, 10000};
+    static uint16_t powersof10[] = {1, 10, 100, 1000};
     return ((x / powersof10[n]) % 10) + '0';
+}
+
+char nthdecimal(double x, unsigned int n)
+{
+    static uint16_t powersof10[] = {10, 100, 1000, 10000};
+    return ( (int)(x * powersof10[n]) % 10) + '0';
 }
 
 void USART_Init( unsigned int ubrr) {
@@ -45,17 +52,40 @@ void USART_Transmit( unsigned char data ) {
 	UDR0 = data;
 }
 
-void display_int(uint16_t x, int pt)
+void display_int(uint32_t x, int pt)
 {
 	USART_Transmit(0x76);  //Reset Display
 
-	USART_Transmit(0x77); //Turn on Decimal Point
-	USART_Transmit(1<<pt); 
+	//if (x < 1) {
+	//	USART_Transmit('e');
+	//	USART_Transmit('e');
+	//	USART_Transmit('e');
+	//	USART_Transmit('e');	
+	//}
+	//else
+	//{
+		USART_Transmit(0x77); //Turn on Decimal Point
+		USART_Transmit(1<<pt); 
 
-	USART_Transmit(nthdigit(x,3));
-	USART_Transmit(nthdigit(x,2));
-	USART_Transmit(nthdigit(x,1));
-	USART_Transmit(nthdigit(x,0));
+		USART_Transmit(nthdigit(x,3));
+		USART_Transmit(nthdigit(x,2));
+		USART_Transmit(nthdigit(x,1));
+		USART_Transmit(nthdigit(x,0));
+	//}
+
+}
+
+void display_float(double x)
+{
+	USART_Transmit(0x76);  //Reset Display
+
+		USART_Transmit(0x77); //Turn on Decimal Point
+		USART_Transmit(1<<2); 
+
+		USART_Transmit(nthdigit(x,2));
+		USART_Transmit(nthdigit(x,1));
+		USART_Transmit(nthdigit(x,0));
+		USART_Transmit(nthdecimal(x,0));
 
 }
 
@@ -95,51 +125,37 @@ int main( void ) {
 	USART_Init(MYUBRR);
 	ADC_Initialize();
 
-	DDRC |= 1 << DDC2; // set PC2 to output
-	DDRC |= 1 << DDC3; // set PC3 to output
-
-	DDRD |= 1 << DDD1;
+	DDRC = (0 << DDC0) | (1 << DDC1); // set PC0 to input, PC1 to output
 
 	uint16_t count = 0;
-	uint16_t volts = 0;
-	uint16_t resistance_10 = 0;
-	//uint32_t temp;
-	uint16_t temperature = 0;
+	double volts = 0;
+	double resistance = 0;
+	double temperature = 0;
 
 	USART_Transmit(0x76);  //Reset Display
 
 	while ( 1 ) {
-
 		delayms( 450 );	
+	
+		if (bit_is_clear(PINC,PINC0) && (temperature-273) < 70) {
+			PORTC |= ( 1 << PC1 ); //Relay On
+		}
+		
+		if (bit_is_set(PINC,PINC0) || (temperature-273) > 71)
+		{
+			PORTC &= ~ ( 1 << PORTC1 );	
+		}
 
-		//PORTC &= ( 1 << PORTC2 );	// LED off
-		//PORTC &= ( 1 << PORTC1 );	// LED off		
-		//c2
-		//PORTC |= ~( 1 << PORTC2 );	// LED on
-		//PORTD |= 1 << PORTD1; 		// LED on
-		//delayms( 450 );
-		//c1
-		//PORTC |= ~( 1 << PORTC1 );	// LED on
-		//PORTC &= ( 1 << PORTC2 );	// LED off
-		//delayms( 450 );			
-		//c2&c1
-		//PORTC |= ~( 1 << PORTC2 );	// LED on
-		//delayms( 450 );	
 
 		//Display Temperature
 		count = adc_read();
-		volts = ((count*4.97)/1024)*100;	
-		//display_int(volts, 1);
-		//delayms(450);
-		resistance_10 = ((volts*100)/(506-volts)); //(5-count);
-		//display_int(resistance_10, 6);
-		//delayms(450);
-		temperature = 25 - ( (resistance_10-1000)/10 )/4.25;
-		display_int(temperature*10, 2);
+		volts = ((count*4.97)/1024);	
+		//display_float(volts);
+		resistance = ((volts*1000)/(5-volts)); //(5-count);
+		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
+		display_float(temperature-273);
 
-
-
-	}	
+	}
 
 
 	return 0;
