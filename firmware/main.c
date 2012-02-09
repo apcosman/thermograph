@@ -15,6 +15,7 @@ void delayms( uint16_t millis ) {
 	}
 }
 
+//TODO: replace sprintf ( char * str, const char * format, ... )
 char nthdigit(uint32_t x, unsigned int n)
 {
     static uint16_t powersof10[] = {1, 10, 100, 1000};
