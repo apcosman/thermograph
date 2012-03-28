@@ -122,15 +122,13 @@ uint16_t adc_read(void)
 
 int main( void ) {
 
-	DDRB |= (1 << DDB1) | (0 << DDB2);		// set PB1 to output, PB2 to input
-	PORTB |=  1 << PORTB1 | 1 << PB2 ;		// write logic high (turn on), write logic high (pull-up)	
+	DDRB  =  (1 << DDB1)   | (0 << DDB2);		// set PB1 to output, PB2 to input
+	PORTB =  (1 << PORTB1) | (1 << PB2);		// write logic high (turn on), write logic high (pull-up)	
 
 	USART_Init(MYUBRR);
 	ADC_Initialize();
 
-	DDRC &= ~(1 << DDC0); 
-
-	//DDRC |=  (0 << DDC5); // set PC0 to input, PC5 to output
+	DDRC = (0 << DDC0) | (1 << DDC5) | (1 << DDC2) | (1 << DDC3); 
 
 	uint16_t count = 0;
 	double volts = 0;
@@ -143,11 +141,14 @@ int main( void ) {
 	while ( 1 ) {
 		delayms( 450 );	
 
+		PORTC = 0x00;
 		if (bit_is_set(PINC,PINC0)) {
+			PORTC |= (1 << DDC3);
 			//PORTC |= ( 1 << PC5 );
-			display_int(5, 0);
+			//display_int(5, 0);
 		}
 		else {
+			PORTC |= (1 << DDC2);
 			//PORTC &= ~( 0 << PC5 );
 			display_int(70, 3);
 		}
