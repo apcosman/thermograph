@@ -187,8 +187,8 @@ int main( void ) {
 			OCR2B = 255;
 			OCR0B = 255;
 
-			OCR2A = 0;
-			OCR0A = 0;
+			OCR2A = 255;
+			OCR0A = 255;
 		       		
 			//PORTC &= ~( 0 << PC5 );
 			//display_int(70, 3);
