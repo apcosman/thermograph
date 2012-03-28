@@ -122,11 +122,15 @@ uint16_t adc_read(void)
 
 int main( void ) {
 
+	DDRB |= (1 << DDB1) | (0 << DDB2);		// set PB1 to output, PB2 to input
+	PORTB |=  1 << PORTB1 | 1 << PB2 ;		// write logic high (turn on), write logic high (pull-up)	
 
 	USART_Init(MYUBRR);
 	ADC_Initialize();
 
-	DDRC = (0 << DDC0) | (1 << DDC1); // set PC0 to input, PC1 to output
+	DDRC &= ~(1 << DDC0); 
+
+	//DDRC |=  (0 << DDC5); // set PC0 to input, PC5 to output
 
 	uint16_t count = 0;
 	double volts = 0;
@@ -135,26 +139,34 @@ int main( void ) {
 
 	USART_Transmit(0x76);  //Reset Display
 
+
 	while ( 1 ) {
 		delayms( 450 );	
+
+		if (bit_is_set(PINC,PINC0)) {
+			//PORTC |= ( 1 << PC5 );
+			display_int(5, 0);
+		}
+		else {
+			//PORTC &= ~( 0 << PC5 );
+			display_int(70, 3);
+		}
 	
-		if (bit_is_clear(PINC,PINC0) && (temperature-273) < 70) {
-			PORTC |= ( 1 << PC1 ); //Relay On
-		}
-		
-		if (bit_is_set(PINC,PINC0) || (temperature-273) > 71)
-		{
-			PORTC &= ~ ( 1 << PORTC1 );	
-		}
-
-
+		//if (bit_is_clear(PINB,PINB2) && (temperature-273) < 70) {
+		//	PORTC |= ( 1 << PC5 ); //Relay On
+		//}	
+		//if (bit_is_set(PINB,PINB2) || (temperature-273) > 71) {
+		//	PORTC &= ~ ( 1 << PORTC5 );	
+		//}
+	
+	
 		//Display Temperature
-		count = adc_read();
-		volts = ((count*4.97)/1024);	
-		//display_float(volts);
-		resistance = ((volts*1000)/(5-volts)); //(5-count);
-		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
-		display_float(temperature-273);
+		//count = adc_read();
+		//volts = ((count*4.97)/1024);	
+		//resistance = ((volts*1000)/(5-volts)); 
+		//temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
+		//temperature = temperature - 273;
+		//display_float( temperature  );
 
 	}
 
