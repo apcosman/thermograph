@@ -175,6 +175,8 @@ int main( void ) {
 			PORTC |= (1 << DDC3);
 			OCR2B = 255;
 			OCR2A = 0;
+			OCR0A = 0;
+		       	OCR0B = 255;	
 			//PORTC |= ( 1 << PC5 );
 			//display_int(5, 0);
 		}
@@ -182,6 +184,8 @@ int main( void ) {
 			PORTC &= ~(1 << DDC3);
 			OCR2B = 0;
 			OCR2A = 255;
+			OCR0A = 255;
+		       	OCR0B = 0;	
 			//PORTC &= ~( 0 << PC5 );
 			//display_int(70, 3);
 		}
