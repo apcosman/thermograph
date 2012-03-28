@@ -174,10 +174,10 @@ int main( void ) {
 		if (bit_is_set(PINC,PINC0)) {
 			PORTC |= (1 << DDC3);
 			OCR2B = 0;
-			OCR0B = 0;	
+			OCR0B = 255;	
 			
 			OCR2A = 255;
-			OCR0A = 255;
+			OCR0A = 0;
 		      
 			//PORTC |= ( 1 << PC5 );
 			//display_int(5, 0);
@@ -185,9 +185,9 @@ int main( void ) {
 		else {
 			PORTC &= ~(1 << DDC3);
 			OCR2B = 255;
-			OCR0B = 255;
+			OCR0B = 0;
 
-			OCR2A = 255;
+			OCR2A = 0;
 			OCR0A = 255;
 		       		
 			//PORTC &= ~( 0 << PC5 );
