@@ -53,6 +53,34 @@ void USART_Transmit( unsigned char data ) {
 	UDR0 = data;
 }
 
+void PWM_Init(void) {
+
+	//Make PWM Pins, Digital Outputs
+	DDRD = (1 << DDD5) | (1 << DDD6) | (1 << DDD3);
+	DDRB |= (1 << DDB3);
+
+	//Set PWM Pins High
+	PORTD = ( 1 << PORTD5 ) | ( 1 << PORTD6 ) | ( 1 << PORTD3 );
+	PORTB |= ( 1 << PORTB3);
+
+	//Setup PWM Registers
+	//OC0A & B
+	TCCR0A = ( 3 << COM0A0 ) | ( 3 << COM0B0 ) | ( 1 << WGM00); //Set OC0A & OC0B PWM to inverted output, tie to OCR0A(/B?)
+	TCCR0B = ( 0 << WGM02 ) | ( 2 << CS00 ); //Set OC0A/B Pre-Scalar (WGM02 -> TOP?)
+
+	OCR0A = 255;
+	OCR0B = 255;
+
+	//Setup PWM Registers
+	//OC2A & B
+	TCCR2A = ( 3 << COM2A0 ) | ( 3 << COM2B0 ) | ( 1 << WGM20); //Set OC2A & OC2B PWM to inverted output, tie to OCR2A(/B?)
+	TCCR2B = ( 0 << WGM22 ) | ( 2 << CS20 ); //Set OC2A/B Pre-Scalar (WGM22 -> TOP?)
+
+	//OC2A & B
+	OCR2A = 255;
+	OCR2B = 255;
+}
+
 void display_int(uint32_t x, int pt)
 {
 	USART_Transmit(0x76);  //Reset Display
@@ -127,6 +155,7 @@ int main( void ) {
 
 	USART_Init(MYUBRR);
 	ADC_Initialize();
+	PWM_Init();
 
 	DDRC = (0 << DDC0) | (1 << DDC5) | (1 << DDC2) | (1 << DDC3); 
 
@@ -144,13 +173,15 @@ int main( void ) {
 		PORTC = 0x00;
 		if (bit_is_set(PINC,PINC0)) {
 			PORTC |= (1 << DDC3);
+			OCR2B = 0;
 			//PORTC |= ( 1 << PC5 );
 			//display_int(5, 0);
 		}
 		else {
-			PORTC |= (1 << DDC2);
+			PORTC &= ~(1 << DDC3);
+			OCR2B = 255;
 			//PORTC &= ~( 0 << PC5 );
-			display_int(70, 3);
+			//display_int(70, 3);
 		}
 	
 		//if (bit_is_clear(PINB,PINB2) && (temperature-273) < 70) {
@@ -162,12 +193,12 @@ int main( void ) {
 	
 	
 		//Display Temperature
-		//count = adc_read();
-		//volts = ((count*4.97)/1024);	
-		//resistance = ((volts*1000)/(5-volts)); 
-		//temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
-		//temperature = temperature - 273;
-		//display_float( temperature  );
+		count = adc_read();
+		volts = ((count*4.5)/1024);	
+		resistance = ((volts*1000)/(5-volts)); 
+		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
+		temperature = temperature - 273;
+		display_float( temperature  );
 
 	}
 
