@@ -173,19 +173,19 @@ int main( void ) {
 		PORTC = 0x00;
 		if (bit_is_set(PINC,PINC0)) {
 			PORTC |= (1 << DDC3);
-			OCR2B = 255;
+			OCR2B = 0;
 			OCR2A = 255;
-			OCR0A = 0;
-		       	OCR0B = 255;	
+			OCR0A = 255;
+		       	OCR0B = 0;	
 			//PORTC |= ( 1 << PC5 );
 			//display_int(5, 0);
 		}
 		else {
 			PORTC &= ~(1 << DDC3);
-			OCR2B = 0;
+			OCR2B = 255;
 			OCR2A = 0;
 			OCR0A = 255;
-		       	OCR0B = 0;	
+		       	OCR0B = 255;	
 			//PORTC &= ~( 0 << PC5 );
 			//display_int(70, 3);
 		}
@@ -200,7 +200,7 @@ int main( void ) {
 	
 		//Display Temperature
 		count = adc_read();
-		volts = ((count*4.5)/1024);	
+		volts = ((count*5.0)/1024);	
 		resistance = ((volts*1000)/(5-volts)); 
 		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
 		temperature = temperature - 273;
