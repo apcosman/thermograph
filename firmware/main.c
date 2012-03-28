@@ -173,8 +173,8 @@ int main( void ) {
 		PORTC = 0x00;
 		if (bit_is_set(PINC,PINC0)) {
 			PORTC |= (1 << DDC3);
-			OCR2B = 128;
-			OCR2A = 128;
+			OCR2B = 255;
+			OCR2A = 255;
 			OCR0A = 0;
 		       	OCR0B = 255;	
 			//PORTC |= ( 1 << PC5 );
