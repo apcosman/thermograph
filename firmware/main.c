@@ -151,7 +151,7 @@ uint16_t adc_read(void)
 int main( void ) {
 
 	DDRB  =  (1 << DDB1)   | (0 << DDB2);		// set PB1 to output, PB2 to input
-	PORTB =  (1 << PORTB1) | (1 << PB2);		// write logic high (turn on), write logic high (pull-up)	
+	PORTB =  (0 << PORTB1) | (1 << PB2);		// write logic high (turn on), write logic high (pull-up)	
 
 	USART_Init(MYUBRR);
 	ADC_Initialize();
@@ -166,18 +166,17 @@ int main( void ) {
 
 	USART_Transmit(0x76);  //Reset Display
 
-
 	while ( 1 ) {
 		delayms( 450 );	
 
 		PORTC = 0x00;
 		if (bit_is_set(PINC,PINC0)) {
 			PORTC |= (1 << DDC3);
-			OCR2B = 0;
-			OCR0B = 255;	
+			OCR2B = 255;
+			OCR0B = 0;	
 			
-			OCR2A = 255;
-			OCR0A = 0;
+			OCR2A = 0;
+			OCR0A = 255;
 		      
 			//PORTC |= ( 1 << PC5 );
 			//display_int(5, 0);
@@ -185,30 +184,33 @@ int main( void ) {
 		else {
 			PORTC &= ~(1 << DDC3);
 			OCR2B = 255;
-			OCR0B = 0;
+			OCR0B = 255; //0;
 
-			OCR2A = 0;
+			OCR2A = 255; //0;
 			OCR0A = 255;
 		       		
 			//PORTC &= ~( 0 << PC5 );
 			//display_int(70, 3);
 		}
 	
-		//if (bit_is_clear(PINB,PINB2) && (temperature-273) < 70) {
-		//	PORTC |= ( 1 << PC5 ); //Relay On
-		//}	
-		//if (bit_is_set(PINB,PINB2) || (temperature-273) > 71) {
-		//	PORTC &= ~ ( 1 << PORTC5 );	
-		//}
+		if (bit_is_clear(PINB,PINB2)) { //&& (temperature-273) < 70) {
+			PORTC |= ( 1 << PC5 ); //Relay On
+		}	
+		if (bit_is_set(PINB,PINB2)) { // || (temperature-273) > 71) {
+			PORTC &= ~ ( 1 << PORTC5 );	
+		}
 	
 	
 		//Display Temperature
 		count = adc_read();
-		volts = ((count*5.0)/1024);	
-		resistance = ((volts*1000)/(5-volts)); 
+		volts = ((count*5.1)/1024);	
+		resistance = ( (5.1 - volts) / volts ) * 100000;
 		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
-		temperature = temperature - 273;
-		display_float( temperature  );
+		//display_int( volts*1000, 0  );
+
+		//delayms(450);
+
+		display_float( temperature - 273 );
 
 	}
 
