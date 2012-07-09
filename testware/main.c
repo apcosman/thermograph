@@ -8,7 +8,8 @@
 #include <math.h>
 #include <util/delay.h>
 
-extern void make_blue();  //make it blue
+//extern void run_asm(); 
+extern void make_blue();
 
 void delayms( uint16_t millis ) {
 	while ( millis ) {
@@ -19,19 +20,23 @@ void delayms( uint16_t millis ) {
 
 int main( void ) {
 
-	DDRB  =  (1 << DDB1)   | (0 << DDB2);		// set PB1 to output, PB2 to input
-	PORTB =  (0 << PORTB1) | (1 << PB2);		// write logic high (turn on), write logic high (pull-up)	
+//	run_asm();
 
-	DDRC =  (1 << DDC2) | (1 << DDC3); 
+	DDRB  =  (1 << DDB1)   | (0 << DDB2);		// set PB1 to output, PB2 to input
+	PORTB =  (0 << PORTB1) | (1 << PB2);		// write logic low! -- to pnp! (turn on), write logic high (pull-up)	
+
+	DDRC =  (0 << DDC0) | (1 << DDC2) | (1 << DDC3); 
 
 	while ( 1 ) {	
 		PORTC = 0x00;
 		PORTC |= (1 << PC3);
-		delayms( 450 );	
-		//PORTC |= (1 << PC2);
-		make_blue();
-		delayms( 450 );	
+		//delayms( 450 );	
+		if (bit_is_set(PINC,PINC0)) {
+			make_blue();
+			delayms( 1000 );
+		}	
 		
 	}
 	return 0;
+
 }

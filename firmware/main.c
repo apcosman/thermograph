@@ -8,6 +8,9 @@
 #include <math.h>
 #include <util/delay.h>
 
+extern asm_tx(unsigned char tx);
+//extern second_USART_RX();
+
 void delayms( uint16_t millis ) {
 	while ( millis ) {
 		_delay_ms( 1 );
@@ -147,17 +150,18 @@ uint16_t adc_read(void)
 	return result;
 }
 
-
 int main( void ) {
 
 	DDRB  =  (1 << DDB1)   | (0 << DDB2);		// set PB1 to output, PB2 to input
-	PORTB =  (0 << PORTB1) | (1 << PB2);		// write logic high (turn on), write logic high (pull-up)	
+	PORTB =  (0 << PORTB1) | (1  << PB2);		// write logic  (turn on), write logic high (pull-up)	
 
 	USART_Init(MYUBRR);
 	ADC_Initialize();
 	PWM_Init();
 
-	DDRC = (0 << DDC0) | (1 << DDC5) | (1 << DDC2) | (1 << DDC3); 
+	DDRC = (0 << DDC0) | (1 << DDC1) | (1 << DDC5) | (1 << DDC2) | (1 << DDC3); 
+	PORTC = 0x00;
+	PORTC = ( 1 << PC5 );  //Relay off
 
 	uint16_t count = 0;
 	double volts = 0;
@@ -167,9 +171,7 @@ int main( void ) {
 	USART_Transmit(0x76);  //Reset Display
 
 	while ( 1 ) {
-		delayms( 450 );	
 
-		PORTC = 0x00;
 		if (bit_is_set(PINC,PINC0)) {
 			PORTC |= (1 << DDC3);
 			OCR2B = 255;
@@ -194,23 +196,33 @@ int main( void ) {
 		}
 	
 		if (bit_is_clear(PINB,PINB2)) { //&& (temperature-273) < 70) {
-			PORTC |= ( 1 << PC5 ); //Relay On
+			PORTC &= ~( 1 << PC5 ); //Relay On
+			asm_tx('R');
+			asm_tx('\t');
 		}	
 		if (bit_is_set(PINB,PINB2)) { // || (temperature-273) > 71) {
-			PORTC &= ~ ( 1 << PORTC5 );	
+			PORTC |= ( 1 << PORTC5 );
+			asm_tx('r');
+			asm_tx('\t');
 		}
-	
-	
+		
 		//Display Temperature
 		count = adc_read();
-		volts = ((count*5.1)/1024);	
-		resistance = ( (5.1 - volts) / volts ) * 100000;
+		volts = ((count*5.02)/1024);	
+		resistance = ( (5.02 - volts) / volts ) * 100000;
 		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
 		//display_int( volts*1000, 0  );
-
-		//delayms(450);
-
+		//delayms(500);
 		display_float( temperature - 273 );
+		delayms(500);
+
+		asm_tx(nthdigit(temperature - 273 ,2));
+		asm_tx(nthdigit(temperature - 273 ,1));
+		asm_tx(nthdigit(temperature - 273 ,0));
+		asm_tx(nthdecimal(temperature - 273 ,0));
+		asm_tx('\n');
+		asm_tx('\r');	
+
 
 	}
 

@@ -11,13 +11,13 @@ program : $(TARGET).hex
 	$(PROG) -c avrispv2 -p m$(MEGA) -P /dev/ttyACM0 -U flash:w:$(TARGET).hex
 
 # asm from hand coded asm 
-asm_func.o : asm_func.S
+asm.o : uart.S
 	$(CC) $(ASMFLAGS) $^ -o $@
 
 %.o : %.c 
 	$(CC) -c $(CFLAGS) $^ -o $@	
 
-main.obj : main.o asm_func.o 
+main.obj : main.o asm.o 
 	$(CC) $(CFLAGS) $^ -o $@ -lm
 
 %.hex : %.obj
