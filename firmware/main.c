@@ -208,8 +208,8 @@ int main( void ) {
 		
 		//Display Temperature
 		count = adc_read();
-		volts = ((count*4.9)/1024);	
-		resistance = ( (4.9 - volts) / volts ) * 100000;
+		volts = ((count*5.0)/1024);	
+		resistance = ( (4.973 - volts) / volts ) * 100000;
 		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
 		display_int( volts*1000, 0  );
 		delayms(500);
