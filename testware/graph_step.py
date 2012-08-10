@@ -52,7 +52,9 @@ class DataPlot(Qwt.QwtPlot):
 
         self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time (seconds)")
         self.setAxisTitle(Qwt.QwtPlot.yLeft, "Degrees")
-    
+
+	self.grabKeyboard()
+
         self.startTimer(1000)
 
     def alignScales(self):
@@ -93,6 +95,23 @@ class DataPlot(Qwt.QwtPlot):
         self.temp_curve.setData(self.x, self.y)
 	self.relay.setData(self.x, self.z)
         self.replot()
+
+    def to_file(self):
+    	f = open('output_data.txt', 'w')
+    	f.write("Temperature\n")
+    	for item in self.temp_array:
+		f.write("%s\n" % item)
+    	f.write("Relay\n")
+    	for item in self.rs_array:
+		f.write("%s\n" % item)
+
+    def keyPressEvent(self,event):
+        if event.key() == Qt.Qt.Key_Right:
+            self.to_file()
+	if event.key() == Qt.Qt.Key_Left:
+            self.temp_array = []
+            self.rs_array = []
+
 
 def make():
     demo = DataPlot()

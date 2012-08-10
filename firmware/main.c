@@ -125,8 +125,11 @@ void ADC_Initialize(void) {
 		
 	ADCSRA   = (1 << ADEN) | (7 << ADPS0) ;  //Enable ADC, divide-by-128 for prescaler 
 	
-	ADMUX    = (0 << ADLAR) | (0 << REFS0) | (0 << REFS1) | ( 6 << MUX0);
+	ADMUX    = (0 << ADLAR) | (0 << REFS0) | (0 << REFS1);
+}
 
+void ADC_set_pin(mux) {
+	ADMUX = (0 << ADLAR) | (0 << REFS0) | (0 << REFS1) | ( mux << MUX0);
 }
 
 uint16_t adc_read(void)
@@ -163,6 +166,9 @@ int main( void ) {
 	PORTC = 0x00;
 	PORTC = ( 1 << PC5 );  //Relay off
 
+	DDRD &= ~( 1 << DDD4 );
+	PORTD |= ( 1 << PD4 ) ;//internal pull-up
+
 	uint16_t count = 0;
 	double volts = 0;
 	double resistance = 0;
@@ -194,6 +200,16 @@ int main( void ) {
 			//PORTC &= ~( 0 << PC5 );
 			//display_int(70, 3);
 		}
+
+		if bit_is_clear(PIND, PIND4) {
+			ADC_set_pin(7);
+			PORTC |= (1 << DDC2);
+		}
+		else
+		{
+			ADC_set_pin(6);
+			PORTC &= ~(1 << DDC2);
+		}
 	
 		if (bit_is_clear(PINB,PINB2)) { //&& (temperature-273) < 70) {
 			PORTC &= ~( 1 << PC5 ); //Relay On
@@ -208,8 +224,8 @@ int main( void ) {
 		
 		//Display Temperature
 		count = adc_read();
-		volts = ((count*5.0)/1024);	
-		resistance = ( (4.973 - volts) / volts ) * 100000;
+		volts = ((count*5.02)/1024);	
+		resistance = ( (5.02 - volts) / volts ) * 100000;
 		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
 		display_int( volts*1000, 0  );
 		delayms(500);
