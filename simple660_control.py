@@ -54,7 +54,7 @@ class fusionbrainusb(QtCore.QObject):
                     print "WOULD HAVE CRASHED -- DIGTIAL INPUT"
                 return self.dev_ret
 
-        def setAnaOutput(self, output_num = 15, value=0b00000000):
+        def setAnaOutput(self, output_num = 14, value=0b00000000):
                 self.bulk_data[output_num * 2] = value
                 self.bulk_data[(output_num *2)+1] = 0b00000001
                 try:
@@ -62,6 +62,7 @@ class fusionbrainusb(QtCore.QObject):
                     self.dev_ret = self.dev.read(129,64,0,500)
                 except:
                     print "WOULD HAVE CRASHED -- ANALOG OUTPUT"
+		print self.dev_ret
                 return self.dev_ret
 
         def readAnaOutput(self, ouput_num = 1):
@@ -73,25 +74,31 @@ class fusionbrainusb(QtCore.QObject):
 
 class manualControlWidget(QtGui.QWidget):
 
-        def __init__(self, parent = None, start_pin = 1, stop_pin=2  ):
+        def __init__(self, parent = None, start_pin = 0, stop_pin=3  ):
                 QtGui.QWidget.__init__(self, parent)
 
-                self.digital_names = {1:'Pin 1'}
+                self.digital_names = {0:'Pin 0', 1:'Pin 1', 2:'Pin 2'}
 
                 #list comprehension for creating checkboxes
                 self.checkboxes = [QtGui.QCheckBox(("%s" % self.digital_names[i]), self) for i in range(start_pin, stop_pin)]
 
-                self.set_analog = QtGui.QDoubleSpinBox()
-                self.set_analog.setFocusPolicy(QtCore.Qt.ClickFocus)
-                self.set_analog.setValue(3.89)
+                self.set_time = QtGui.QSpinBox()
+                self.set_time.setFocusPolicy(QtCore.Qt.ClickFocus)
 
-                self.read_analog = QtGui.QLCDNumber()
-                self.read_analog.setDigitCount(4)
+                #self.read_analog = QtGui.QLCDNumber()
+                self.set_time.setMaximum(3600)
+		self.tim = 100 
+
+                self.set_sample = QtGui.QSpinBox()
+                self.set_sample.setFocusPolicy(QtCore.Qt.ClickFocus)
+		self.set_sample.setMaximum(1000)
+		self.sample = 200
 
                 layout = QtGui.QGridLayout()
 
-                layout.addWidget(self.set_analog, 0, 0, 1, 1)
-                layout.addWidget(self.read_analog, 0, 1, 1, 2)
+                layout.addWidget(self.set_time, 0, 1, 1, 1)
+		layout.addWidget(self.set_sample, 1, 1, 1,1)
+                #layout.addWidget(self.read_analog, 0, 1, 1, 2)
 
                 #map instead of looping to layout checkboxes
                 map(layout.addWidget,
@@ -113,25 +120,33 @@ class manualControlWidget(QtGui.QWidget):
 
                 self.connect(self.mapper, QtCore.SIGNAL("mapped(int)"), self._pin_click)
 
-                self.connect(self.set_analog, QtCore.SIGNAL("valueChanged(double)"), self._spin_change)
+                self.connect(self.set_time, QtCore.SIGNAL("valueChanged(int)"), self._spin_change)
+                self.connect(self.set_sample, QtCore.SIGNAL("valueChanged(int)"), self._spin_change)
                 #use a slot on fusionbrain to listen to valve_click?
 
                 self.output_object = fusionbrainusb()
 
                 #connecting up all the widgets
                 self.ana_timer = QtCore.QTimer(self)
-                self.connect(self.ana_timer, QtCore.SIGNAL("timeout()"), self._read_analog)
-                self.ana_timer.start(1000)
+                self.connect(self.ana_timer, QtCore.SIGNAL("timeout()"), self._gen_sine)
+                self.ana_timer.start(self.tim)
 
                 self.connect(self.output_object, QtCore.SIGNAL("pinOutSet"),  self._sync_check)
                 self._sync_check(self.output_object.readAnaOutput())
 
+		self.sine_values = [64 - 64*math.sin(2*math.pi*t/self.sample) for t in range(0, self.sample)]	
+		self._gen_sine()
 
+	def _gen_sine(self, omega = 100):
+		for sine in self.sine_values:
+			self.output_object.setAnaOutput(output_num = 14, value = int(sine))
+			time.sleep(0.5)
+			
         def _sync_check(self, dev_ret):
                 #TODO: this is god-awful ugly
                 #print "here: %s" % repr(dev_ret)
                 for x,check in enumerate(self.checkboxes):
-                        print dev_ret[(self.digital_names.keys()[x])*2]
+                        #print dev_ret[(self.digital_names.keys()[x])*2]
                         if dev_ret[(self.digital_names.keys()[x])*2] == 1:
                                 check.setChecked(True)
                         else:
@@ -146,15 +161,19 @@ class manualControlWidget(QtGui.QWidget):
                         self.output_object.setOutput(output_num = the_no, value = b'\01')
 
         def _spin_change(self, the_value):
-                in_volts = float(the_value) 
-		
+                #in_volts = float(the_value) 	
 
                 #in_perc_cycle = int(in_volts)
-                in_perc_cycle = int( ( float(in_volts)  / float(5) ) * float(128) ) -1
+                #in_perc_cycle = int( ( float(in_volts)  / float(5) ) * float(128) ) -1
 
-                val = in_perc_cycle << 1
+                #val = in_perc_cycle << 1
+		#val = int(the_value) << 1
 
-                self.output_object.setAnaOutput(output_num = 0, value = val)
+                #self.output_object.setAnaOutput(output_num = 14, value = val)
+		self.sample =  self.set_sample.value()
+		self.time = self.set_time.value()
+
+		
 
         def _read_analog(self):
                 voltage_scale = float(5) / float(1024)

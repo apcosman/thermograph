@@ -22,7 +22,7 @@ class DataPlot(Qwt.QwtPlot):
         self.alignScales()
 
         # Initialize data
-        self.x = arange(0.0, 3600, 1)
+        self.x = arange(0.0, 7200, 1)
 	self.z = zeros(len(self.x), Float)
         self.y = zeros(len(self.x), Float)
 
