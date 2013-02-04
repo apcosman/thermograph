@@ -11,7 +11,7 @@ program : $(TARGET).hex
 	$(PROG) -c avrispv2 -p m$(MEGA) -P  /dev/ttyACM0 -U flash:w:$(TARGET).hex
 
 # asm from hand coded asm 
-asm.o : uart.S
+asm.o : uart_duplex.S
 	$(CC) $(ASMFLAGS) $^ -o $@
 
 %.o : %.c 

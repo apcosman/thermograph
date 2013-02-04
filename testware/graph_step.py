@@ -50,12 +50,13 @@ class DataPlot(Qwt.QwtPlot):
         mY.setYValue(20.0)
         mY.attach(self)
 
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time (seconds)")
+        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time ( 500msec )")
         self.setAxisTitle(Qwt.QwtPlot.yLeft, "Degrees")
 
 	self.grabKeyboard()
 
-        self.startTimer(1000)
+        self.startTimer(200)
+	self.times = 0
 
     def alignScales(self):
         self.canvas().setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Plain)
@@ -77,7 +78,8 @@ class DataPlot(Qwt.QwtPlot):
 	if rx_data == '\r':
 		relay_status = self.hp_ser.read(size=1)
 		self.hp_ser.read(size=1) #throw out tab
-		temp = self.hp_ser.read(size=4)
+		temp = self.hp_ser.read(size=6)
+		self.times+=1
 	else:
 		relay_status = 'NS'
 		temp = 'NT'
@@ -86,9 +88,14 @@ class DataPlot(Qwt.QwtPlot):
 			self.rs_array.append(0)
 		else:
 			self.rs_array.append(100)
-		self.temp_array.append(float(int(temp)/10))
+		self.temp_array.append(float(temp))
 	else:
 		self.temp_array.append(-1)
+
+	if ( self.times > 3 and self.times < 63 ):
+		self.hp_ser.write('R')
+	else:
+		self.hp_ser.write(' ')
 
 	self.y = array(self.temp_array)  
 	self.z = array(self.rs_array)      
