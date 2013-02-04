@@ -1,31 +1,32 @@
-from numpy import cos, sin, pi, absolute, arange, std, fft, mean
+from numpy import cos, sin, pi, absolute, arange, std, fft, mean, exp, amax, amin, concatenate, ones, zeros
 import numpy
 from scipy.signal import kaiserord, lfilter, firwin, freqz
 from pylab import figure, clf, plot, xlabel, ylabel, xlim, ylim, title, grid, axes, show
-
 
 #------------------------------------------------
 # get data.
 #------------------------------------------------
 
-data_file = open('data.arc_data')
+data_file = open('20_sec_temp.txt')
 raw_data = data_file.readlines()
-xy = [tuple(s.split('\t')) for s in raw_data]
+y = [s for s in raw_data]
 
-_t = [float(x[0]) for x in xy] 
-_x = [float(y[1]) for y in xy]
+_y = [float(y) for y in y]
+_t = [float(t/500) for t in range(0, len(_y)*500, 500)]
 
 t = numpy.array(_t)
-x = numpy.array(_x)
-sample_rate = 38.46
-nsamples = 23077
+x = numpy.array(_y)
+sample_rate = 2 #(1/500msec)
+nsamples = len(t)
 
-#sample_rate = 100.0
-#nsamples = 400
-#t = arange(nsamples) / sample_rate
-#x = cos(2*pi*0.5*t) + 0.2*sin(2*pi*2.5*t+0.1) + \
-#        0.2*sin(2*pi*15.3*t) + 0.1*sin(2*pi*16.7*t + 0.1)  + \
-#            0.1*sin(2*pi*23.45*t+.8)
+#ax = 28.29 + exp(0.0005*t)
+
+
+delay = 500
+time_const = 10850
+ideal_unit_decay = exp( (-1*( t )) / (time_const) )
+
+ax = 40*concatenate((ones(delay*sample_rate), ideal_unit_decay ))[:nsamples]
 
 #
 # FFT of signal
@@ -73,38 +74,38 @@ filtered_x = lfilter(taps, 1.0, x)
 # Plot the FIR filter coefficients.
 #------------------------------------------------
 
-figure(1)
-plot(taps, 'bo-', linewidth=2)
-title('Filter Coefficients (%d taps)' % N)
-grid(True)
+#figure(1)
+#plot(taps, 'bo-', linewidth=2)
+#title('Filter Coefficients (%d taps)' % N)
+#grid(True)
 
 #------------------------------------------------
 # Plot the magnitude response of the filter.
 #------------------------------------------------
 
-figure(2)
-clf()
-w, h = freqz(taps, worN=8000)
-plot((w/pi)*nyq_rate, absolute(h), linewidth=2)
-xlabel('Frequency (Hz)')
-ylabel('Gain')
-title('Frequency Response')
-ylim(-0.05, 1.05)
-grid(True)
+#figure(2)
+#clf()
+#w, h = freqz(taps, worN=8000)
+#plot((w/pi)*nyq_rate, absolute(h), linewidth=2)
+#xlabel('Frequency (Hz)')
+#ylabel('Gain')
+#title('Frequency Response')
+#ylim(-0.05, 1.05)
+#grid(True)
 
 # Upper inset plot.
-ax1 = axes([0.42, 0.6, .45, .25])
-plot((w/pi)*nyq_rate, absolute(h), linewidth=2)
-xlim(0,8.0)
-ylim(0.9985, 1.001)
-grid(True)
+#ax1 = axes([0.42, 0.6, .45, .25])
+#plot((w/pi)*nyq_rate, absolute(h), linewidth=2)
+#xlim(0,8.0)
+#ylim(0.9985, 1.001)
+#grid(True)
 
 # Lower inset plot
-ax2 = axes([0.42, 0.25, .45, .25])
-plot((w/pi)*nyq_rate, absolute(h), linewidth=2)
-xlim(12.0, 20.0)
-ylim(0.0, 0.0025)
-grid(True)
+#ax2 = axes([0.42, 0.25, .45, .25])
+#plot((w/pi)*nyq_rate, absolute(h), linewidth=2)
+#xlim(12.0, 20.0)
+#ylim(0.0, 0.0025)
+#grid(True)
 
 #------------------------------------------------
 # Plot the original and filtered signals.
@@ -115,22 +116,18 @@ delay = 0.5 * (N-1) / sample_rate
 
 figure(3)
 # Plot the original signal.
-plot(t, x)
+#plot(t, x)
 # Plot the filtered signal, shifted to compensate for the phase delay.
-plot(t-delay, filtered_x, 'r-')
+#plot(t-delay, filtered_x, 'r-')
 # Plot just the "good" part of the filtered signal.  The first N-1
 # samples are "corrupted" by the initial conditions.
-plot(t[N-1:]-delay, filtered_x[N-1:], 'g', linewidth=4)
+plot(t[N-1:]-delay, filtered_x[N-1:], 'g', linewidth=2)
+
+plot(t, ax, 'y', linewidth=3)
 
 xlabel('t')
 grid(True)
 
-figure(4)
-plot(frq, abs(fourier))
-
-print(std(x))
-print(mean(filtered_x[N-1:]))
-print(std(filtered_x[N-1:]))
 
 show()
 
