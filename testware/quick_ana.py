@@ -22,11 +22,17 @@ nsamples = len(t)
 #ax = 28.29 + exp(0.0005*t)
 
 
-delay = 500
-time_const = 10850
+delay = 490
+time_const = 10000
 ideal_unit_decay = exp( (-1*( t )) / (time_const) )
 
-ax = 40*concatenate((ones(delay*sample_rate), ideal_unit_decay ))[:nsamples]
+input_time_const = 1000
+unit_exp_input = exp( (1 * (t)) / (input_time_const))
+
+ax_decay = (23)*ideal_unit_decay
+ax_delay_decay = concatenate((40*ones(delay*sample_rate), ax_decay))[:nsamples]
+ax_input = concatenate( (33*unit_exp_input[:(delay*sample_rate)], zeros(nsamples) ) )[:nsamples]
+ax = ax_input + (ax_input-23)*ax_decay
 
 #
 # FFT of signal
@@ -128,6 +134,8 @@ plot(t, ax, 'y', linewidth=3)
 xlabel('t')
 grid(True)
 
+print amin(filtered_x[N-1:])
+print amax(filtered_x)
 
 show()
 
