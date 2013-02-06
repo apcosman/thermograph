@@ -92,7 +92,7 @@ class DataPlot(Qwt.QwtPlot):
 	else:
 		self.temp_array.append(-1)
 
-	if ( self.times > 3 and self.times < 63 ):
+	if ( self.times > 20 and self.times < 140 ):
 		self.hp_ser.write('R')
 	else:
 		self.hp_ser.write(' ')

@@ -233,6 +233,7 @@ int main( void ) {
 		if bit_is_clear(PIND, PIND4) {
 			ADC_set_pin(7);
 			PORTC |= (1 << PC2);
+			display_int( adc_read() , 3 );
 		}
 		else
 		{
@@ -253,21 +254,23 @@ int main( void ) {
 		}
 		
 		//Display Temperature
-		count = adc_read();
-		volts = ((count*5.02)/1024);	
-		resistance = ( (5.02 - volts) / volts ) * 100000;
-		temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
-		//display_int( volts*1000, 0  );
-		display_float( temperature - 273 );
+		if ( bit_is_set(PIND, PIND4) ) {
+			count = adc_read();
+			volts = ((count*5.02)/1024);	
+			resistance = ( (5.02 - volts) / volts ) * 100000;
+			temperature = 1 / (0.003354016 + 0.000256985*log(resistance/10000) + 0.000002620131*log(resistance/10000)*log(resistance/10000) );
+			//display_int( volts*1000, 0  );
+			display_float( temperature - 273 );
 
-		asm_tx(nthdigit(temperature - 273 ,2));
-		asm_tx(nthdigit(temperature - 273 ,1));
-		asm_tx(nthdigit(temperature - 273 ,0));
-		asm_tx('.');
-		asm_tx(nthdecimal(temperature - 273, 0));
-		asm_tx(nthdecimal(temperature - 273, 1));
-		asm_tx('\n');
-		asm_tx('\r');	
+			asm_tx(nthdigit(temperature - 273 ,2));
+			asm_tx(nthdigit(temperature - 273 ,1));
+			asm_tx(nthdigit(temperature - 273 ,0));
+			asm_tx('.');
+			asm_tx(nthdecimal(temperature - 273, 0));
+			asm_tx(nthdecimal(temperature - 273, 1));
+			asm_tx('\n');
+			asm_tx('\r');	
+		}
 
 		delayms(500);
 
