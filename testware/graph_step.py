@@ -55,8 +55,10 @@ class DataPlot(Qwt.QwtPlot):
 
 	self.grabKeyboard()
 
-        self.startTimer(200)
+        self.startTimer(75)
 	self.times = 0
+	self.on_time = 16
+	self.first = 0
 
     def alignScales(self):
         self.canvas().setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Plain)
@@ -92,10 +94,19 @@ class DataPlot(Qwt.QwtPlot):
 	else:
 		self.temp_array.append(-1)
 
-	if ( self.times > 20 and self.times < 140 ):
-		self.hp_ser.write('R')
-	else:
-		self.hp_ser.write(' ')
+	if (self.times > 100) and (self.first == 0):
+		self.first = 1
+		self.times = 0
+
+	if ( self.times > 2047 ):
+		self.times = 0
+
+	if self.first == 1:
+		if (self.times <= self.on_time ):
+			self.hp_ser.write('R')
+		else:
+			self.on_time = 16
+			self.hp_ser.write(' ')		
 
 	self.y = array(self.temp_array)  
 	self.z = array(self.rs_array)      

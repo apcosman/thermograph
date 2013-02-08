@@ -188,7 +188,8 @@ int main( void ) {
 	PORTC = ( 1 << PC5 ) | (1 << PC1);  //Relay off, pull-up on asm_rx on
 
 	DDRD &= ~( 1 << DDD4 );
-	PORTD |= ( 1 << PD4 ) ;//internal pull-up
+	DDRD &= ~( 1 << DDD7 );
+	PORTD |= ( 1 << PD4 ) | ( 1 << PD7 ) ;//internal pull-up on DIP Switch 6 (&7?)
 
 	//enable Pin Change Interrupts
 	PCICR |= (1 << PCIE1); //Enable PC4 Interrupt
@@ -233,28 +234,16 @@ int main( void ) {
 		if bit_is_clear(PIND, PIND4) {
 			ADC_set_pin(7);
 			PORTC |= (1 << PC2);
-			display_int( adc_read() , 3 );
+
+			count = adc_read();
+			display_int( count, 3  );
+		
 		}
 		else
 		{
 			ADC_set_pin(6);
 			PORTC &= ~(1 << PC2);
-		}
-	
-		if ( ( bit_is_clear(PINB,PINB2) ) || ( ( relay_flag == 1 ) ) ) { //&& (temperature-273) < 70) {
-			PORTC &= ~( 1 << PC5 ); //Relay On
-			asm_tx('R');
-			asm_tx('\t');
-		} else {
-			if (bit_is_set(PINB,PINB2)) { // || (temperature-273) > 71) {
-				PORTC |= ( 1 << PORTC5 );
-				asm_tx('r');
-				asm_tx('\t');
-			}
-		}
-		
-		//Display Temperature
-		if ( bit_is_set(PIND, PIND4) ) {
+
 			count = adc_read();
 			volts = ((count*5.02)/1024);	
 			resistance = ( (5.02 - volts) / volts ) * 100000;
@@ -270,9 +259,28 @@ int main( void ) {
 			asm_tx(nthdecimal(temperature - 273, 1));
 			asm_tx('\n');
 			asm_tx('\r');	
+		
 		}
 
-		delayms(500);
+		if bit_is_clear(PIND, PIND7) {
+			//Future home of setting ADC to internal temperature
+			PORTC |= (1 << PC3);
+		}
+	
+		if ( ( bit_is_clear(PINB,PINB2) ) || ( ( relay_flag == 1 ) ) ) { 
+			PORTC &= ~( 1 << PC5 ); //Relay On
+			asm_tx('R');
+			asm_tx('\t');
+			//relay_flag = 0;
+		} else {
+			if (bit_is_set(PINB,PINB2)) { // || (temperature-273) > 71) {
+				PORTC |= ( 1 << PORTC5 );
+				asm_tx('r');
+				asm_tx('\t');
+			}
+		}
+		
+		delayms(200);
 
 	}
 
