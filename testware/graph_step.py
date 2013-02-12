@@ -22,7 +22,7 @@ class DataPlot(Qwt.QwtPlot):
         self.alignScales()
 
         # Initialize data
-        self.x = arange(0.0, 7200, 1)
+        self.x = arange(0.0, 100000, 1)
 	self.z = zeros(len(self.x), Float)
         self.y = zeros(len(self.x), Float)
 
@@ -50,15 +50,16 @@ class DataPlot(Qwt.QwtPlot):
         mY.setYValue(20.0)
         mY.attach(self)
 
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time ( 500msec )")
+        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time ( 200msec )")
         self.setAxisTitle(Qwt.QwtPlot.yLeft, "Degrees")
 
 	self.grabKeyboard()
 
         self.startTimer(75)
-	self.times = 0
-	self.on_time = 16
-	self.first = 0
+
+	self.cycles = 0
+	self.on_cycles = 45
+	self.start = 0
 
     def alignScales(self):
         self.canvas().setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Plain)
@@ -81,32 +82,42 @@ class DataPlot(Qwt.QwtPlot):
 		relay_status = self.hp_ser.read(size=1)
 		self.hp_ser.read(size=1) #throw out tab
 		temp = self.hp_ser.read(size=6)
-		self.times+=1
+		self.cycles+=1
 	else:
 		relay_status = 'NS'
 		temp = 'NT'
 	if not (relay_status == 'NS' and temp == 'NT'):
 		if relay_status == 'r':
 			self.rs_array.append(0)
-		else:
+		elif relay_status == 'R':
 			self.rs_array.append(100)
-		self.temp_array.append(float(temp))
-	else:
-		self.temp_array.append(-1)
-
-	if (self.times > 100) and (self.first == 0):
-		self.first = 1
-		self.times = 0
-
-	if ( self.times > 2047 ):
-		self.times = 0
-
-	if self.first == 1:
-		if (self.times <= self.on_time ):
-			self.hp_ser.write('R')
 		else:
-			self.on_time = 16
-			self.hp_ser.write(' ')		
+			self.rs_array.append(self.rs_array[-1])		
+		self.temp_array.append(float(temp))
+	#else:
+	#	self.temp_array.append(-1)
+	
+	if (self.cycles > 100) and (self.start == 0):
+		self.start = 1
+		self.cycles = 0
+
+	if ( self.cycles > 1024 ):
+		self.cycles = 0
+
+	if self.start == 1:
+		
+		error = 40 - self.temp_array[-1]
+		prop_pwr = error*0.020 #0.005 seems to work in pure prop mode
+		self.on_cycles =  prop_pwr*1024
+ 
+		#if (self.cycles <= self.on_cycles ):
+		#	self.hp_ser.write('R')
+		#else:
+		#	if relay_status == 'R':
+		#		self.hp_ser.write(' ')
+
+		print "%s: %s, cycles: %s, error: %s, prop_pwr: %s, on_cycles: %s" % (relay_status, temp, self.cycles, error, prop_pwr, self.on_cycles)
+
 
 	self.y = array(self.temp_array)  
 	self.z = array(self.rs_array)      
