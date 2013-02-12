@@ -12,7 +12,7 @@ raw_data = data_file.readlines()
 y = [s for s in raw_data]
 
 _y = [float(y) for y in y]
-_t = [float(t/500) for t in range(0, len(_y)*500, 500)]
+_t = [float(t/2) for t in range(0, len(_y), 1)]
 
 t = numpy.array(_t)
 x = numpy.array(_y)
@@ -126,7 +126,7 @@ plot(t, x, 'b', linewidth=2)
 
 plot(t, ax_pwr, 'm')
 
-#plot(t, r, 'r')
+plot(t, r, 'r')
 
 xlabel('t')
 grid(True)
