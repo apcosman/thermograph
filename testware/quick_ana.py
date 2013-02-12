@@ -7,7 +7,7 @@ from pylab import figure, clf, plot, xlabel, ylabel, xlim, ylim, title, grid, ax
 # get data.
 #------------------------------------------------
 
-data_file = open('20_sec_temp.txt')
+data_file = open('first_real_long_with_p_temp.txt')
 raw_data = data_file.readlines()
 y = [s for s in raw_data]
 
@@ -19,7 +19,7 @@ x = numpy.array(_y)
 sample_rate = 2 #(1/500msec)
 nsamples = len(t)
 
-data_file = open('20_sec_time.txt')
+data_file = open('first_real_long_with_p_relay.txt')
 raw_data = data_file.readlines()
 y = [s for s in raw_data]
 
@@ -29,25 +29,25 @@ r = numpy.array(_y)
 
 #ax = 28.29 + exp(0.0005*t)
 
-delay = 472 #800
-time_const = 3150 #3150
-ideal_unit_decay = exp( (-1*( t )) / (time_const) )
+#delay = 472 #800
+#time_const = 3150 #3150
+#ideal_unit_decay = exp( (-1*( t )) / (time_const) )
 
-pwr_start = 2
-pwr_stop = 122.5
-pwr_time_const = 400
-unit_exp_pwr = exp( t / pwr_time_const )
+#pwr_start = 2
+#pwr_stop = 122.5
+#pwr_time_const = 400
+#unit_exp_pwr = exp( t / pwr_time_const )
 
-ax_decay = ideal_unit_decay
-ax_delay_decay = (24 + (48.5 - 24)*ax_decay)[:nsamples] #38.5
+#ax_decay = ideal_unit_decay
+#ax_delay_decay = (24 + (48.5 - 24)*ax_decay)[:nsamples] #38.5
 
 #ax_pwr = concatenate( (zeros(nsamples)[:(pwr_start*sample_rate)], 29 + unit_exp_pwr[:(pwr_stop-pwr_start)*sample_rate], ones(nsamples)) )[:nsamples]
 #ax_pwr = concatenate( ( 29*ones(nsamples)[:(pwr_start*sample_rate)], (29 + unit_exp_pwr)[:(pwr_stop-pwr_start)*sample_rate], \
         #                    (29+unit_exp_pwr[(pwr_stop-pwr_start)*sample_rate])*ones(nsamples) ) )[:nsamples]
 #ax_pwr = concatenate( (29*ones(nsamp0.05*t + 29
-ax_pwr = concatenate( ( 29*ones(nsamples)[:(pwr_start*sample_rate)], (0.05*t + 29)[:(pwr_stop-pwr_start)*sample_rate], \
-                       (29+(0.05*t)[(pwr_stop-pwr_start)*sample_rate])*ones(nsamples) ) )[:nsamples]
-ax = ax_pwr - ax_delay_decay
+#ax_pwr = concatenate( ( 29*ones(nsamples)[:(pwr_start*sample_rate)], (0.05*t + 29)[:(pwr_stop-pwr_start)*sample_rate], \
+        #(29+(0.05*t)[(pwr_stop-pwr_start)*sample_rate])*ones(nsamples) ) )[:nsamples]
+#ax = ax_pwr - ax_delay_decay
 #ax = 100000 / t
 
 
@@ -112,9 +112,9 @@ figure(1)
 # samples are "corrupted" by the initial conditions.
 
 plot(t[N:], filtered_x[N:], 'g', linewidth=2)
-plot(t, ax_delay_decay, 'y', linewidth=3)
+#plot(t, ax_delay_decay, 'y', linewidth=3)
 
-plot(t, ax, 'k', linewidth=2)
+#plot(t, ax, 'k', linewidth=2)
 
 #dfs = diff(ideal_unit_decay) / diff(t)
 
@@ -122,9 +122,9 @@ plot(t, ax, 'k', linewidth=2)
 
 #plot(-1*dfs)
 #plot(ideal_unit_decay)
-plot(t, x, 'b', linewidth=2)
+#plot(t, x, 'b', linewidth=2)
 
-plot(t, ax_pwr, 'm')
+#plot(t, ax_pwr, 'm')
 
 plot(t, r, 'r')
 
