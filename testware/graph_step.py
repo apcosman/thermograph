@@ -17,6 +17,7 @@ class DataPlot(Qwt.QwtPlot):
 
 	self.temp_array = []
 	self.rs_array = []
+	self.temp_avg = [0, 0, 0, 0, 0]
 
         self.setCanvasBackground(Qt.Qt.white)
         self.alignScales()
@@ -25,6 +26,7 @@ class DataPlot(Qwt.QwtPlot):
         self.x = arange(0.0, 100000, 1)
 	self.z = zeros(len(self.x), Float)
         self.y = zeros(len(self.x), Float)
+	self.w = zeros(len(self.x), Float)
 
         self.setTitle("Teflonator")
         self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
@@ -43,6 +45,10 @@ class DataPlot(Qwt.QwtPlot):
                                         Qt.QPen(Qt.Qt.yellow),
                                         Qt.QSize(7, 7)))
         self.relay.setPen(Qt.QPen(Qt.Qt.blue))
+
+	self.avg_curve = Qwt.QwtPlotCurve("Avg Temp")
+        self.avg_curve.attach(self)
+        self.avg_curve.setPen(Qt.QPen(Qt.Qt.green, 3))
 
         mY = Qwt.QwtPlotMarker()
         mY.setLabelAlignment(Qt.Qt.AlignRight | Qt.Qt.AlignTop)
@@ -94,10 +100,11 @@ class DataPlot(Qwt.QwtPlot):
 		else:
 			self.rs_array.append(self.rs_array[-1])		
 		self.temp_array.append(float(temp))
+		self.temp_avg.append(sum(self.temp_array[-6:-1])/5.)
 	#else:
 	#	self.temp_array.append(-1)
 	
-	if (self.cycles > 100) and (self.start == 0):
+	if (self.cycles > 300) and (self.start == 0):
 		self.start = 1
 		self.cycles = 0
 
@@ -106,23 +113,28 @@ class DataPlot(Qwt.QwtPlot):
 
 	if self.start == 1:
 		
-		error = 40 - self.temp_array[-1]
-		prop_pwr = error*0.020 #0.005 seems to work in pure prop mode
+		
+		error = 80 - self.temp_avg[-1]
+		prop_pwr = error*0.0045 #0.005 seems to work in pure prop mode
 		self.on_cycles =  prop_pwr*1024
+
+		deriv = (self.temp_avg[-1] - self.temp_avg[-11])/2. #degrees per second?
  
-		#if (self.cycles <= self.on_cycles ):
+		#if (self.cycles <= self.on_cycles and self.on_cycles > 0):
 		#	self.hp_ser.write('R')
 		#else:
 		#	if relay_status == 'R':
 		#		self.hp_ser.write(' ')
 
-		print "%s: %s, cycles: %s, error: %s, prop_pwr: %s, on_cycles: %s" % (relay_status, temp, self.cycles, error, prop_pwr, self.on_cycles)
+		print "%s: %s (%s), cycles: %s, error: %s, prop_pwr: %s, on_cycles: %s. deriv: %s" % (relay_status, temp, self.temp_avg[-1], self.cycles, error, prop_pwr, self.on_cycles, deriv)
 
 
 	self.y = array(self.temp_array)  
-	self.z = array(self.rs_array)      
+	self.z = array(self.rs_array)
+	self.w = array(self.temp_avg)     
         self.temp_curve.setData(self.x, self.y)
 	self.relay.setData(self.x, self.z)
+	self.avg_curve.setData(self.x, self.w)
         self.replot()
 
     def to_file(self):
