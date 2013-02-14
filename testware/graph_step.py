@@ -108,7 +108,7 @@ class DataPlot(Qwt.QwtPlot):
 		self.temp_array.append(float(temp))
 		self.temp_avg.append(sum(self.temp_array[-101:-1])/100.)
 		error = 80 - self.temp_avg[-1]
-                if (abs(error - self.errors[-1]) > 25):
+                if (len(self.errors) > 0) and (abs(error - self.errors[-1]) > 25):
                     self.errors.append(self.errors[-1])
                 else:
                     self.errors.append(error)
