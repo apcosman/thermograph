@@ -17,7 +17,8 @@ class DataPlot(Qwt.QwtPlot):
 
 	self.temp_array = []
 	self.rs_array = []
-	self.temp_avg = [0, 0, 0, 0, 0]
+	self.temp_avg = []
+	self.errors = []
 
         self.setCanvasBackground(Qt.Qt.white)
         self.alignScales()
@@ -27,6 +28,7 @@ class DataPlot(Qwt.QwtPlot):
 	self.z = zeros(len(self.x), Float)
         self.y = zeros(len(self.x), Float)
 	self.w = zeros(len(self.x), Float)
+	self.v = zeros(len(self.x), Float)
 
         self.setTitle("Teflonator")
         self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
@@ -50,10 +52,14 @@ class DataPlot(Qwt.QwtPlot):
         self.avg_curve.attach(self)
         self.avg_curve.setPen(Qt.QPen(Qt.Qt.green, 3))
 
+	self.error_curve = Qwt.QwtPlotCurve("Error")
+        self.error_curve.attach(self)
+        self.error_curve.setPen(Qt.QPen(Qt.Qt.green, 3))
+
         mY = Qwt.QwtPlotMarker()
         mY.setLabelAlignment(Qt.Qt.AlignRight | Qt.Qt.AlignTop)
         mY.setLineStyle(Qwt.QwtPlotMarker.HLine)
-        mY.setYValue(20.0)
+        mY.setYValue(100.0)
         mY.attach(self)
 
         self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time ( 200msec )")
@@ -100,7 +106,9 @@ class DataPlot(Qwt.QwtPlot):
 		else:
 			self.rs_array.append(self.rs_array[-1])		
 		self.temp_array.append(float(temp))
-		self.temp_avg.append(sum(self.temp_array[-6:-1])/5.)
+		self.temp_avg.append(sum(self.temp_array[-101:-1])/100.)
+		error = 80 - self.temp_avg[-1]
+		self.errors.append(error)
 	#else:
 	#	self.temp_array.append(-1)
 	
@@ -108,33 +116,39 @@ class DataPlot(Qwt.QwtPlot):
 		self.start = 1
 		self.cycles = 0
 
-	if ( self.cycles > 1024 ):
+	if ( self.cycles > 512 ):
 		self.cycles = 0
 
 	if self.start == 1:
+			
+		#error = 80 - self.temp_avg[-1]
+		#self.errors.append(error)
 		
-		
-		error = 80 - self.temp_avg[-1]
-		prop_pwr = error*0.0045 #0.005 seems to work in pure prop mode
-		self.on_cycles =  prop_pwr*1024
+		prop_pwr = error*0.004 #0.005 seems to work in pure prop mode
 
-		deriv = (self.temp_avg[-1] - self.temp_avg[-11])/2. #degrees per second?
+		deriv = (self.errors[-1] - self.errors[-100])/2. #change in error in degrees per second?
+		deriv_pwr = deriv*0.002
+
+		self.on_cycles = (prop_pwr + deriv_pwr)*512
  
 		#if (self.cycles <= self.on_cycles and self.on_cycles > 0):
-		#	self.hp_ser.write('R')
+		#	if relay_status != 'R':
+		#		self.hp_ser.write('R')
 		#else:
 		#	if relay_status == 'R':
 		#		self.hp_ser.write(' ')
 
-		print "%s: %s (%s), cycles: %s, error: %s, prop_pwr: %s, on_cycles: %s. deriv: %s" % (relay_status, temp, self.temp_avg[-1], self.cycles, error, prop_pwr, self.on_cycles, deriv)
+		print "%s: %s (%s. %s), cycles: %s, error: %s, prop_pwr: %s, deriv_pwr: %s, on_cycles: %s. deriv: %s" % (relay_status, temp, self.temp_avg[-1], self.errors[-1], self.cycles, error, prop_pwr, deriv_pwr, self.on_cycles, deriv)
 
 
 	self.y = array(self.temp_array)  
 	self.z = array(self.rs_array)
-	self.w = array(self.temp_avg)     
+	self.w = array(self.temp_avg)
+	self.v = array(self.errors)     
         self.temp_curve.setData(self.x, self.y)
 	self.relay.setData(self.x, self.z)
 	self.avg_curve.setData(self.x, self.w)
+	self.error_curve.setData(self.x, self.v)
         self.replot()
 
     def to_file(self):
