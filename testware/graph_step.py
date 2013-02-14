@@ -130,7 +130,7 @@ class DataPlot(Qwt.QwtPlot):
 		prop_pwr = error*0.004 #0.0035 seems to work alright with cover and 0.0025 deriv (@ 512)
 
 		deriv = (self.errors[-1] - self.errors[-100])/2. #change in error in degrees per second?
-		deriv_pwr = deriv*0.0035
+		deriv_pwr = deriv*0.006
 
 		self.on_cycles = (prop_pwr + deriv_pwr)*512
  
