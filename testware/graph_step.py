@@ -108,7 +108,10 @@ class DataPlot(Qwt.QwtPlot):
 		self.temp_array.append(float(temp))
 		self.temp_avg.append(sum(self.temp_array[-101:-1])/100.)
 		error = 80 - self.temp_avg[-1]
-		self.errors.append(error)
+                if (abs(error - self.errors[-1]) > 25):
+                    self.errors.append(self.errors[-1])
+                else:
+                    self.errors.append(error)
 	#else:
 	#	self.temp_array.append(-1)
 	
@@ -124,19 +127,19 @@ class DataPlot(Qwt.QwtPlot):
 		#error = 80 - self.temp_avg[-1]
 		#self.errors.append(error)
 		
-		prop_pwr = error*0.0035 #0.005 seems to work in pure prop mode
+		prop_pwr = error*0.004 #0.0035 seems to work alright with cover and 0.0025 deriv (@ 512)
 
 		deriv = (self.errors[-1] - self.errors[-100])/2. #change in error in degrees per second?
-		deriv_pwr = deriv*0.0025
+		deriv_pwr = deriv*0.0035
 
 		self.on_cycles = (prop_pwr + deriv_pwr)*512
  
-		if (self.cycles <= self.on_cycles and self.on_cycles > 0):
-			if relay_status != 'R':
-				self.hp_ser.write('R')
-		else:
-			if relay_status == 'R':
-				self.hp_ser.write(' ')
+                #if (self.cycles <= self.on_cycles and self.on_cycles > 0):
+                #	if relay_status != 'R':
+                #		self.hp_ser.write('R')
+                #else:
+                #	if relay_status == 'R':
+                #		self.hp_ser.write(' ')
 
 		print "%s: %s (%s. %s), cycles: %s, error: %s, prop_pwr: %s, deriv_pwr: %s, on_cycles: %s. deriv: %s" % (relay_status, temp, self.temp_avg[-1], self.errors[-1], self.cycles, error, prop_pwr, deriv_pwr, self.on_cycles, deriv)
 
