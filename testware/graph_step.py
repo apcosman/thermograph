@@ -134,12 +134,12 @@ class DataPlot(Qwt.QwtPlot):
 
 		self.on_cycles = (prop_pwr + deriv_pwr)*512
  
-                #if (self.cycles <= self.on_cycles and self.on_cycles > 0):
-                #	if relay_status != 'R':
-                #		self.hp_ser.write('R')
-                #else:
-                #	if relay_status == 'R':
-                #		self.hp_ser.write(' ')
+                if (self.cycles <= self.on_cycles and self.on_cycles > 0):
+                    if relay_status != 'R':
+                            self.hp_ser.write('R')
+                else:
+                    if relay_status == 'R':
+                        self.hp_ser.write(' ')
 
 		print "%s: %s (%s. %s), cycles: %s, error: %s, prop_pwr: %s, deriv_pwr: %s, on_cycles: %s. deriv: %s" % (relay_status, temp, self.temp_avg[-1], self.errors[-1], self.cycles, error, prop_pwr, deriv_pwr, self.on_cycles, deriv)
 
