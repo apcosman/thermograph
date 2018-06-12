@@ -1,23 +1,111 @@
 import serial
 import sys
-from PyQt4 import Qt
+
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore, QtGui, QThread
+
+#from PyQt4 import Qt
 #import qwt as Qwt
-from PyQt4.Qwt5 import *
+#from PyQt4.Qwt5 import *
+
 import numpy as np
-#from numpy.core. import Float
-#from PyQt4.Qwt5.anynumpy import *
+
+class TS_GetSerialThread(QtCore.QThread):
+    """ Runs a function in a thread, and alerts the parent when done. 
+    Uses a custom QEvent to alert the main thread of completion.
+    """
+
+    def __init__(self, parent = None, *args, **kwargs):
+        super(TS_GetSerialThread, self).__init__(parent)
+        self.args = args
+        self.kwargs = kwargs
+        #self.start()
+
+    def run(self):
+        try:
+            result = self.func(*self.args, **self.kwargs)
+        except Exception as e:
+            print "e is %s" % e
+            result = e
+        finally:
+            CallbackEvent.post_to(self.parent(), self.on_finished, result)
+
+
+class TS_SerialDevice(QtCore.QObject):
+    
+    def __init__(self, parent = None, serpath = None, **kwargs):
+        super(TS_GetSerialThread, self).__init__(parent)
+        #QtCore.QObject.inherits(self)
+
+        try:
+	    self.hp_ser = serial.Serial(serparth, baudrate=9600, bytesize=serial.EIGHTBITS, timeout=None)
+	except:
+	    print "Failed to Open Serial Device"
+	    quit()
+
+        self.bulk_data = bytearray([b'\00' for i in range(0, 64)])
+        self.dev_ret = self.bulk_data
+
+    def readAnaOutput(self, ouput_num = 1):
+        try:
+            self.dev_ret = self.dev.read(129,64,0,500)
+        except:
+            print "WOULD HAVE CRASHED -- ANALOG READ"
+        return self.dev_ret
+
+
+class CallbackEvent(QtCore.QEvent):
+    """
+    A custom QEvent that contains a callback reference
+
+    Also provides class methods for conveniently executing 
+    arbitrary callback, to be dispatched to the event loop.
+    """
+    EVENT_TYPE = QtCore.QEvent.Type(QtCore.QEvent.registerEventType())
+
+    def __init__(self, func, *args, **kwargs):
+        super(CallbackEvent, self).__init__(self.EVENT_TYPE)
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    def callback(self):
+        """
+        Convenience method to run the callable. 
+
+        Equivalent to:  
+            self.func(*self.args, **self.kwargs)
+        """
+        self.func(*self.args, **self.kwargs)
+
+    @classmethod
+    def post_to(cls, receiver, func, *args, **kwargs):
+        """
+        Post a callable to be delivered to a specific
+        receiver as a CallbackEvent. 
+
+        It is the responsibility of this receiver to 
+        handle the event and choose to call the callback.
+        """
+        # We can create a weak proxy reference to the
+        # callback so that if the object associated with
+        # a bound method is deleted, it won't call a dead method
+        if not isinstance(func, proxy):
+            reference = proxy(func, quiet=True)
+        else:
+            reference = func
+        event = cls(reference, *args, **kwargs)
+
+        # post the event to the given receiver
+        QtGui.QApplication.postEvent(receiver, event)
+
+
 
 class DataPlot(Qwt.QwtPlot):
 
     def __init__(self, *args):
         Qwt.QwtPlot.__init__(self, *args)
 	
-	try:
-		self.hp_ser = serial.Serial('/dev/ttyACM1', baudrate=57600, bytesize=serial.EIGHTBITS, timeout=None)
-	except:
-		print "Failed to Open Serial Port"
-		quit()	
-
 	self.temp_array = []
 	self.rs_array = []
 	self.temp_avg = []
@@ -185,7 +273,6 @@ def main(args):
     demo = make()
     sys.exit(app.exec_())
 
-# Admire
 if __name__ == '__main__':
     main(sys.argv)
 
