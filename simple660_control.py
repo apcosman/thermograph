@@ -7,7 +7,7 @@ import time
 import math
 
 #below, not-included-with-python libraries
-import cv
+import cv2 as cv
 import usb
 from PyQt4 import QtGui
 from PyQt4 import QtOpenGL
@@ -33,10 +33,10 @@ class fusionbrainusb(QtCore.QObject):
                 QtCore.QObject.__init__(self)
 
                 #use pyusb to find endpoint fusion brain
-                self.dev = usb.core.find(idVendor=0x04d8, idProduct=0x000E)
+                #self.dev = usb.core.find(idVendor=0x04d8, idProduct=0x000E)
 
-                self.dev.set_configuration(1)
-                self.dev.set_interface_altsetting(interface = 0, alternate_setting = 0)
+                #self.dev.set_configuration(1)
+                #self.dev.set_interface_altsetting(interface = 0, alternate_setting = 0)
 
                 self.bulk_data = bytearray([b'\00' for i in range(0, 64)])
                 self.dev_ret = self.bulk_data

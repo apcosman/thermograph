@@ -1,8 +1,11 @@
 import serial
 import sys
 from PyQt4 import Qt
+#import qwt as Qwt
 from PyQt4.Qwt5 import *
-from PyQt4.Qwt5.anynumpy import *
+import numpy as np
+#from numpy.core. import Float
+#from PyQt4.Qwt5.anynumpy import *
 
 class DataPlot(Qwt.QwtPlot):
 
@@ -24,11 +27,11 @@ class DataPlot(Qwt.QwtPlot):
         self.alignScales()
 
         # Initialize data
-        self.x = arange(0.0, 100000, 1)
-	self.z = zeros(len(self.x), Float)
-        self.y = zeros(len(self.x), Float)
-	self.w = zeros(len(self.x), Float)
-	self.v = zeros(len(self.x), Float)
+        self.x = np.arange(0.0, 100000, 1)
+	self.z = np.zeros(len(self.x), np.float)
+        self.y = np.zeros(len(self.x), np.float)
+	self.w = np.zeros(len(self.x), np.float)
+	self.v = np.zeros(len(self.x), np.float)
 
         self.setTitle("Teflonator")
         self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
