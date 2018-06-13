@@ -1,278 +1,115 @@
+#!/usr/bin/python3
+# coding: utf-8
+
 import serial
 import sys
+import io
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui, QThread
-
-#from PyQt4 import Qt
-#import qwt as Qwt
-#from PyQt4.Qwt5 import *
+from pyqtgraph.Qt import QtCore, QtGui 
 
 import numpy as np
 
-class TS_GetSerialThread(QtCore.QThread):
-    """ Runs a function in a thread, and alerts the parent when done. 
-    Uses a custom QEvent to alert the main thread of completion.
-    """
-
-    def __init__(self, parent = None, *args, **kwargs):
-        super(TS_GetSerialThread, self).__init__(parent)
-        self.args = args
-        self.kwargs = kwargs
-        #self.start()
-
-    def run(self):
-        try:
-            result = self.func(*self.args, **self.kwargs)
-        except Exception as e:
-            print "e is %s" % e
-            result = e
-        finally:
-            CallbackEvent.post_to(self.parent(), self.on_finished, result)
-
-
-class TS_SerialDevice(QtCore.QObject):
+class TS_SerialDevice(object):
+    UNITS = {1:"°C", 2:str("°F"), 4:str("% RH"), 6:str("%O2"), 19:str("PPM")}
     
-    def __init__(self, parent = None, serpath = None, **kwargs):
-        super(TS_GetSerialThread, self).__init__(parent)
-        #QtCore.QObject.inherits(self)
-
+    def __init__(self, serpath = None, **kwargs):
+        super(TS_SerialDevice, self).__init__();
+        
         try:
-	    self.hp_ser = serial.Serial(serparth, baudrate=9600, bytesize=serial.EIGHTBITS, timeout=None)
-	except:
-	    print "Failed to Open Serial Device"
-	    quit()
-
-        self.bulk_data = bytearray([b'\00' for i in range(0, 64)])
-        self.dev_ret = self.bulk_data
-
-    def readAnaOutput(self, ouput_num = 1):
-        try:
-            self.dev_ret = self.dev.read(129,64,0,500)
+            self.serial_object = serial.Serial(port=serpath, baudrate=9600, bytesize=serial.EIGHTBITS, timeout=1, exclusive=False)
         except:
-            print "WOULD HAVE CRASHED -- ANALOG READ"
-        return self.dev_ret
+            print("Failed to OPEN serial device")
+        
+        self.ts_reader = io.TextIOWrapper(io.BufferedReader(self.serial_object, 1),  
+                               newline = '\r',
+                               line_buffering = True) 
 
+    def next_readings(self):
 
-class CallbackEvent(QtCore.QEvent):
-    """
-    A custom QEvent that contains a callback reference
-
-    Also provides class methods for conveniently executing 
-    arbitrary callback, to be dispatched to the event loop.
-    """
-    EVENT_TYPE = QtCore.QEvent.Type(QtCore.QEvent.registerEventType())
-
-    def __init__(self, func, *args, **kwargs):
-        super(CallbackEvent, self).__init__(self.EVENT_TYPE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-    def callback(self):
-        """
-        Convenience method to run the callable. 
-
-        Equivalent to:  
-            self.func(*self.args, **self.kwargs)
-        """
-        self.func(*self.args, **self.kwargs)
-
-    @classmethod
-    def post_to(cls, receiver, func, *args, **kwargs):
-        """
-        Post a callable to be delivered to a specific
-        receiver as a CallbackEvent. 
-
-        It is the responsibility of this receiver to 
-        handle the event and choose to call the callback.
-        """
-        # We can create a weak proxy reference to the
-        # callback so that if the object associated with
-        # a bound method is deleted, it won't call a dead method
-        if not isinstance(func, proxy):
-            reference = proxy(func, quiet=True)
-        else:
-            reference = func
-        event = cls(reference, *args, **kwargs)
-
-        # post the event to the given receiver
-        QtGui.QApplication.postEvent(receiver, event)
-
-
-
-class DataPlot(Qwt.QwtPlot):
-
-    def __init__(self, *args):
-        Qwt.QwtPlot.__init__(self, *args)
-	
-	self.temp_array = []
-	self.rs_array = []
-	self.temp_avg = []
-	self.errors = []
-
-        self.setCanvasBackground(Qt.Qt.white)
-        self.alignScales()
-
-        # Initialize data
-        self.x = np.arange(0.0, 100000, 1)
-	self.z = np.zeros(len(self.x), np.float)
-        self.y = np.zeros(len(self.x), np.float)
-	self.w = np.zeros(len(self.x), np.float)
-	self.v = np.zeros(len(self.x), np.float)
-
-        self.setTitle("Teflonator")
-        self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
-
-	self.grid = Qwt.QwtPlotGrid()
-        self.grid.attach(self)
-
-        self.temp_curve = Qwt.QwtPlotCurve("Temperature")
-        self.temp_curve.attach(self) 
-        self.temp_curve.setPen(Qt.QPen(Qt.Qt.red, 3, Qt.Qt.DashDotLine, Qt.Qt.RoundCap, Qt.Qt.RoundJoin))
-
-        self.relay = Qwt.QwtPlotCurve("Relay Status")
-        self.relay.attach(self)
-        self.relay.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
-                                        Qt.QBrush(),
-                                        Qt.QPen(Qt.Qt.yellow),
-                                        Qt.QSize(7, 7)))
-        self.relay.setPen(Qt.QPen(Qt.Qt.blue))
-
-	self.avg_curve = Qwt.QwtPlotCurve("Avg Temp")
-        self.avg_curve.attach(self)
-        self.avg_curve.setPen(Qt.QPen(Qt.Qt.green, 3))
-
-	self.error_curve = Qwt.QwtPlotCurve("Error")
-        self.error_curve.attach(self)
-        self.error_curve.setPen(Qt.QPen(Qt.Qt.green, 3))
-
-        mY = Qwt.QwtPlotMarker()
-        mY.setLabelAlignment(Qt.Qt.AlignRight | Qt.Qt.AlignTop)
-        mY.setLineStyle(Qwt.QwtPlotMarker.HLine)
-        mY.setYValue(100.0)
-        mY.attach(self)
-
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time ( 200msec )")
-        self.setAxisTitle(Qwt.QwtPlot.yLeft, "Degrees")
-
-	self.grabKeyboard()
-
-        self.startTimer(75)
-
-	self.cycles = 0
-	self.on_cycles = 45
-	self.start = 0
-
-    def alignScales(self):
-        self.canvas().setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Plain)
-        self.canvas().setLineWidth(1)
-        for i in range(Qwt.QwtPlot.axisCnt):
-            scaleWidget = self.axisWidget(i)
-            if scaleWidget:
-                scaleWidget.setMargin(0)
-            scaleDraw = self.axisScaleDraw(i)
-            if scaleDraw:
-                scaleDraw.enableComponent(
-                    Qwt.QwtAbstractScaleDraw.Backbone, False)
-
+        try:
+            self.serial_object.flushInput()
+        except:
+            print("Failed to FLUSH serial device")
+            return #TODO: Raise exception
     
-    def timerEvent(self, e):
-	rx_data = ''
-	while not rx_data == '\r':
-		rx_data = self.hp_ser.read(size=1)
-	if rx_data == '\r':
-		relay_status = self.hp_ser.read(size=1)
-		self.hp_ser.read(size=1) #throw out tab
-		temp = self.hp_ser.read(size=6)
-		self.cycles+=1
-	else:
-		relay_status = 'NS'
-		temp = 'NT'
-	if not (relay_status == 'NS' and temp == 'NT'):
-		if relay_status == 'r':
-			self.rs_array.append(0)
-		elif relay_status == 'R':
-			self.rs_array.append(100)
-		else:
-			self.rs_array.append(self.rs_array[-1])		
-		self.temp_array.append(float(temp))
-		self.temp_avg.append(sum(self.temp_array[-101:-1])/100.)
-		error = 80 - self.temp_avg[-1]
-                if (len(self.errors) > 0) and (abs(error - self.errors[-1]) > 25):
-                    self.errors.append(self.errors[-1])
-                else:
-                    self.errors.append(error)
-	#else:
-	#	self.temp_array.append(-1)
-	
-	if (self.cycles > 300) and (self.start == 0):
-		self.start = 1
-		self.cycles = 0
+        while True:
+        
+            try:
+                raw_unicode = self.ts_reader.readline()
+            except:
+                print("Failed to READ from serial device")
+                break #TODO: Raise exception
 
-	if ( self.cycles > 512 ):
-		self.cycles = 0
+            try:
+                raw_bytes = bytes(raw_unicode, encoding='utf-8')
+                
+                current_probe = int(chr(raw_bytes[2]))
+                
+                unit_code = int(chr(raw_bytes[3]))*10 +  int(raw_bytes[4])-48
+                
+                polarity =  int(chr(raw_bytes[5]))
+                
+                decimal_point = int(chr(raw_bytes[6]))
 
-	if self.start == 1:
-			
-		#error = 80 - self.temp_avg[-1]
-		#self.errors.append(error)
-		
-		prop_pwr = error*0.0045 #0.0035 seems to work alright with cover and 0.0025 deriv (@ 512)
+                try:
+                    fixed_width_value = int(str(raw_bytes[7:15], 'utf-8'))
+                    value = fixed_width_value * (10.0 ** (-1*decimal_point)) * ((0-polarity)**0)
 
-		deriv = (self.errors[-1] - self.errors[-100])/2. #change in error in degrees per second?
-		deriv_pwr = deriv*0.003
+                except:
+                    value = None
 
-		self.on_cycles = (prop_pwr + deriv_pwr)*512
- 
-                if (self.cycles <= self.on_cycles and self.on_cycles > 0):
-                    if relay_status != 'R':
-                            self.hp_ser.write('R')
-                else:
-                    if relay_status == 'R':
-                        self.hp_ser.write(' ')
+                yield (current_probe, value, self.UNITS[unit_code])
+            
+            except IndexError as e:
+                print(e)
 
-		print "%s: %s (%s. %s), cycles: %s, error: %s, prop_pwr: %s, deriv_pwr: %s, on_cycles: %s. deriv: %s" % (relay_status, temp, self.temp_avg[-1], self.errors[-1], self.cycles, error, prop_pwr, deriv_pwr, self.on_cycles, deriv)
+            except ValueError as e:
+                print(e)
 
 
-	self.y = array(self.temp_array)  
-	self.z = array(self.rs_array)
-	self.w = array(self.temp_avg)
-	self.v = array(self.errors)     
-        self.temp_curve.setData(self.x, self.y)
-	self.relay.setData(self.x, self.z)
-	self.avg_curve.setData(self.x, self.w)
-	self.error_curve.setData(self.x, self.v)
-        self.replot()
+class TS_LiveValuesPlot(pg.GraphicsWindow):
+    
+    def __init__(self, *args, **kwargs):
+        super(TS_LiveValuesPlot, self).__init__();
 
-    def to_file(self):
-    	f = open('output_data.txt', 'w')
-    	f.write("Temperature\n")
-    	for item in self.temp_array:
-		f.write("%s\n" % item)
-    	f.write("Relay\n")
-    	for item in self.rs_array:
-		f.write("%s\n" % item)
+        self.setWindowTitle('Live Plot of Thermocouple Data')
 
-    def keyPressEvent(self,event):
-        if event.key() == Qt.Qt.Key_Right:
-            self.to_file()
-	if event.key() == Qt.Qt.Key_Left:
-            self.temp_array = []
-            self.rs_array = []
+        self.p1 = self.addPlot()
+        
+        keys = [1,2,3,4]
+        self.data = {x:np.zeros(30, dtype=float) for x in keys} 
+        self.curves = {x:self.p1.plot(self.data[x]) for x in keys}
 
+    def update(self, next_value):
 
-def make():
-    demo = DataPlot()
-    demo.resize(500, 300)
-    demo.show()
-    return demo
+        probe = next_value[0]
 
-def main(args): 
-    app = Qt.QApplication(args)
-    demo = make()
-    sys.exit(app.exec_())
+        self.curves[probe].setPos(probe, 0)
+
+        self.data[probe][:-1] = self.data[probe][1:]  # shift data in the array one sample left
+        self.data[probe][-1] = next_value[1]
+        
+        self.curves[probe].setData(self.data[probe])
+
+def print_output(current_values):
+    print("%d,%s,%s" % current_values)
 
 if __name__ == '__main__':
-    main(sys.argv)
 
+    live_plot_window = TS_LiveValuesPlot()
+
+    data_source = TS_SerialDevice(serpath=sys.argv[1])
+    dsg = data_source.next_readings()
+
+    def read_ds_closure():
+        current_value = next(dsg)
+        live_plot_window.update(current_value)
+        print_output(current_value)
+
+    graph_timer = pg.QtCore.QTimer()
+    graph_timer.timeout.connect(read_ds_closure)
+    graph_timer.start(5)
+
+    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+        QtGui.QApplication.instance().exec_()
