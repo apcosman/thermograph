@@ -4,6 +4,7 @@
 import serial
 import sys
 import io
+import time
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui 
@@ -57,7 +58,7 @@ class TS_SerialDevice(object):
                     value = fixed_width_value * (10.0 ** (-1*decimal_point)) * ((0-polarity)**0)
 
                 except:
-                    value = None
+                    value = float('nan')
 
                 yield (current_probe, value, self.UNITS[unit_code])
             
@@ -67,6 +68,39 @@ class TS_SerialDevice(object):
             except ValueError as e:
                 print(e)
 
+class DateAxis(pg.AxisItem):
+    def tickStrings(self, values, scale, spacing):
+        strns = []
+        rng = max(values)-min(values)
+        #if rng < 120:
+        #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
+        if rng < 3600*24:
+            string = '%H:%M:%S'
+            label1 = '%b %d -'
+            label2 = ' %b %d, %Y'
+        elif rng >= 3600*24 and rng < 3600*24*30:
+            string = '%d'
+            label1 = '%b - '
+            label2 = '%b, %Y'
+        elif rng >= 3600*24*30 and rng < 3600*24*30*24:
+            string = '%b'
+            label1 = '%Y -'
+            label2 = ' %Y'
+        elif rng >=3600*24*30*24:
+            string = '%Y'
+            label1 = ''
+            label2 = ''
+        for x in values:
+            try:
+                strns.append(time.strftime(string, time.localtime(x)))
+            except ValueError:  ## Windows can't handle dates before 1970
+                strns.append('')
+        try:
+            label = time.strftime(label1, time.localtime(min(values)))+time.strftime(label2, time.localtime(max(values)))
+        except ValueError:
+            label = ''
+        #self.setLabel(text=label)
+        return strns
 
 class TS_LiveValuesPlot(pg.GraphicsWindow):
     
@@ -75,25 +109,32 @@ class TS_LiveValuesPlot(pg.GraphicsWindow):
 
         self.setWindowTitle('Live Plot of Thermocouple Data')
 
-        self.p1 = self.addPlot()
-        
-        keys = [1,2,3,4]
-        self.data = {x:np.zeros(30, dtype=float) for x in keys} 
-        self.curves = {x:self.p1.plot(self.data[x]) for x in keys}
+        self.axis = DateAxis(orientation='bottom')
+        self.p1 = self.addPlot(axisItems={'bottom': self.axis})
 
-    def update(self, next_value):
+        keys = [1,2,3,4]
+        self.xtime  = {x:[] for x in keys}  #np.empty(0, dtype=float)
+        self.data   = {x:[] for x in keys} 
+        self.curves = {x:self.p1.plot(self.data[x], pen=(x,2)) for x in keys}
+
+    def update(self, next_time, next_value):
 
         probe = next_value[0]
 
-        self.curves[probe].setPos(probe, 0)
+        #self.curves[probe].setPos(probe, 0)
 
-        self.data[probe][:-1] = self.data[probe][1:]  # shift data in the array one sample left
-        self.data[probe][-1] = next_value[1]
+        #self.xtime[:-1] = self.xtime[1:]
+        #self.data[probe][:-1] = self.data[probe][1:]  # shift data in the array one sample left
         
-        self.curves[probe].setData(self.data[probe])
+        self.xtime[probe].append(next_time)
+        self.data[probe].append(next_value[1])
+        
+        self.curves[probe].setData(self.xtime[probe], self.data[probe])
 
-def print_output(current_values):
-    print("%d,%s,%s" % current_values)
+    
+
+def print_output(current_time, current_values):
+    print("%f,%d,%f,%s" % (current_time,current_values[0], current_values[1], current_values[2]))
 
 if __name__ == '__main__':
 
@@ -103,13 +144,15 @@ if __name__ == '__main__':
     dsg = data_source.next_readings()
 
     def read_ds_closure():
-        current_value = next(dsg)
-        live_plot_window.update(current_value)
-        print_output(current_value)
+        for x in range(0,3):
+            current_value = next(dsg)
+            current_time = time.time()
+            live_plot_window.update(current_time, current_value)
+            print_output(float(current_time), current_value)
 
     graph_timer = pg.QtCore.QTimer()
     graph_timer.timeout.connect(read_ds_closure)
-    graph_timer.start(5)
+    graph_timer.start(30)
 
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         QtGui.QApplication.instance().exec_()
