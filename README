@@ -1,0 +1,13 @@
+# INSTALLATION:
+
+```
+python3 -m pip install --user pyqtgraph
+python3 -m pip install --user numpy
+```
+
+# USAGE:
+
+```
+python3 graph_step.py [PORT]
+```
+
